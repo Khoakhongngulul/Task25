@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title> Task 25.05 </title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body onload="onPageLoading()">
+  <!-- Bắt đầu vùng form nhập thông tin điểm -->
+  <div class="container jumbotron p-4 my-4">
+    <div class="text-center">
+      <h3 class="mb-4">F500 - Quản lý bảng điểm</h3>
+    </div>
+    <div class="row form-group">
+      <label class="col-md-3 col-form-label text-right">Sinh viên <span class="text-danger">(*)</span></label>
+      <div class="col-md-7">
+        <select id="select-sinh-vien" class="form-control">
+          <option value="0">-- Chọn sinh viên --</option>
+        </select>
+      </div>
+    </div>
+    <div class="row form-group">
+      <label class="col-md-3 col-form-label text-right">Môn học <span class="text-danger">(*)</span></label>
+      <div class="col-md-7">
+        <select id="select-mon-hoc" class="form-control">
+          <option value="0">-- Chọn môn học --</option>
+        </select>
+      </div>
+    </div>
+    <div class="row form-group">
+      <label class="col-md-3 col-form-label text-right">Ngày thi <span class="text-danger">(*)</span></label>
+      <div class="col-md-7">
+        <input type="text" class="form-control" placeholder="Ngày thi (dd/mm/yyyy)" id="input-ngay-thi">
+      </div>
+    </div>
+    <div class="row form-group">
+      <label class="col-md-3 col-form-label text-right">Điểm <span class="text-danger">(*)</span></label>
+      <div class="col-md-7">
+        <input type="text" class="form-control" placeholder="Nhập điểm ..." id="input-diem">
+      </div>
+      <div class="col-sm-2">
+        <button class="btn btn-success" id="btn-save-data" onclick="onUpdateData()">Save data</button>
+      </div>
+    </div>
+  </div>
+  <!-- Kết thúc vùng form nhập thông tin điểm -->
+
+  <!-- vùng hiển thị khi thêm điểm thành công -->
+  <div id="div-new-grade-success" class="container p-3 bg-success text-white" style="display: none;">
+
+  </div>
+</body>
+
+<script>
+  "use strict";
+  /*** REGION 1 - Global variables - Vùng khai báo biến, hằng số, tham số TOÀN CỤC */
+  const gREQUEST_STATUS_OK = 200;
+  const gREQUEST_CREATE_OK = 201;
+  const gREQUEST_READY_STATUS_FINISH_AND_OK = 4;
+
+  const gBASE_URL = "https://62454a477701ec8f724fb923.mockapi.io/api/v1/";
+
+  /*** REGION 2 - Vùng gán / thực thi sự kiện cho các elements */
+
+  /*** REGION 3 - Event handlers - Vùng khai báo các hàm xử lý sự kiện */
+  function onPageLoading() {
+    debugger;
+    callAPItoLoadStudents()
+    callAPIToGetSubject()
+  }
+  function test() {
+    var XmlHttpGrade = new XMLHttpRequest()
+    XmlHttpGrade.open("GET", gBASE_URL + "grades/", false)
+    XmlHttpGrade.send()
+    console.log(XmlHttpGrade.responseText)
+  }
+  function onUpdateData() {
+    debugger
+    debugger;
+    debugger;
+    var vGrade = {
+      studentName: "",
+      subjectName: "",
+      ngayThi: "",
+      diem: ""
+    }
+    //fetchData
+    fetchGrade(vGrade)
+    //validate grade
+    var gradeStatus = isGradeLegit(vGrade, vGrade);
+    if (gradeStatus) {
+      //initlize xmlHttp
+      var vXmlHttpGrade = new XMLHttpRequest()
+      //Call Api
+      ApiGrade(vXmlHttpGrade, vGrade)
+      vXmlHttpGrade.onreadystatechange = function () {
+        if (this.status == gREQUEST_CREATE_OK) {
+          if (this.readyState == gREQUEST_READY_STATUS_FINISH_AND_OK) {
+            var vGrades = JSON.parse(vXmlHttpGrade.responseText)
+            var vNotification = document.getElementById("div-new-grade-success")
+            vNotification.style.display = "block"
+            vNotification.innerHTML = "Save thành công, ID student vừa thêm là " + vGrades.id
+          }
+        }
+
+      }
+
+    }
+
+  }
+
+  /*** REGION 4 - Common funtions - Vùng khai báo hàm dùng chung trong toàn bộ chương trình*/
+  function callAPItoLoadStudents() {
+    //initilize api 
+    var XmlHttpStudents = new XMLHttpRequest();
+    //call api
+    XmlHttpStudents.open("GET", gBASE_URL + "students/", true)
+    XmlHttpStudents.send()
+    XmlHttpStudents.onreadystatechange = function () {
+      if (this.readyState == gREQUEST_READY_STATUS_FINISH_AND_OK) {
+        if (this.status == gREQUEST_STATUS_OK) {
+          var vStudent = JSON.parse(XmlHttpStudents.responseText)
+          var vStudentSelect = document.getElementById("select-sinh-vien")
+          for (var bIterator = 0; bIterator < vStudent.length; bIterator++) {
+            var bStudentOptions = document.createElement("option")
+            bStudentOptions.text = vStudent[bIterator].firstname + " " + vStudent[bIterator].lastname;
+            vStudentSelect.appendChild(bStudentOptions)
+          }
+        }
+      }
+    }
+  }
+  function callAPIToGetSubject() {
+    //initilize Subject from SinhVien
+    var vXmlHttpSubject = new XMLHttpRequest();
+    //call api
+    vXmlHttpSubject.open("GET", gBASE_URL + "subjects/", true)
+    vXmlHttpSubject.send()
+    vXmlHttpSubject.onreadystatechange = function () {
+      if (this.status == gREQUEST_STATUS_OK) {
+        if (this.readyState == gREQUEST_READY_STATUS_FINISH_AND_OK) {
+          var vSubject = JSON.parse(vXmlHttpSubject.responseText)
+          var vSubjectSelect = document.getElementById("select-mon-hoc")
+          for (var bIterator = 0; bIterator < vSubject.length; bIterator++) {
+            var vSubjectsSelect = document.createElement("option")
+            vSubjectsSelect.text = vSubject[bIterator].subjectName
+            vSubjectSelect.appendChild(vSubjectsSelect)
+          }
+
+        }
+      }
+    }
+  }
+  function fetchGrade(paramGrade) {
+    var vStudentName = document.getElementById("select-sinh-vien")
+    var vSubjectName = document.getElementById("select-mon-hoc")
+    var vExamDate = document.getElementById("input-ngay-thi")
+    var vGrade = document.getElementById("input-diem")
+
+    paramGrade.studentName = vStudentName.value
+    paramGrade.subjectName = vSubjectName.value
+
+    paramGrade.ngayThi = vExamDate.value
+    paramGrade.diem = parseFloat(vGrade.value)
+  }
+  function isGradeLegit(paramGrade) {
+    if (paramGrade.studentName == 0) {
+      alert("Chưa có tên học sinh")
+      return false;
+    }
+    if (paramGrade.subjectName == 0) {
+      alert("Chưa có tên môn học")
+      return false;
+    }
+    if (paramGrade.ngayThi == "") {
+      alert("Chưa điền ngày thi ")
+      return false;
+    }
+    if (paramGrade.diem == "") {
+      alert("Chưa có điểm")
+      return false;
+    }
+    return true
+  }
+  function ApiGrade(paramApi, paramGrade) {
+    debugger;
+    debugger;
+    var vGrade = JSON.stringify(paramGrade)
+    paramApi.open("POST", gBASE_URL + "grades/", true)
+    paramApi.setRequestHeader("content-type", "application/json")
+    paramApi.send(vGrade)
+  }
+  function handleResponse(paramGrade) {
+    debugger;
+    if (paramGrade.status == gREQUEST_STATUS_OK) {
+      if (paramGrade.readyState == gREQUEST_READY_STATUS_FINISH_AND_OK) {
+        var vGrades = JSON.parse(paramGrade.responseText)
+        var vNotification = document.getElementById("div-new-grade-success")
+        vNotification.style.display = "block"
+        vNotification.innerHTML = "Save thành công, ID student vừa thêm là " + vGrades.ID
+      }
+    }
+
+  }
+
+</script>
+
+</html>
